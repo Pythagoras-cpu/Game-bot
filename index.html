@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>دوز – بازی با کامپیوتر</title>
+  <meta name="description" content="بازی دوز (Tic-Tac-Toe) با هوش مصنوعی ساده، ظاهر مدرن و مینیمال." />
+  <meta name="theme-color" content="#0f1226" />
+  <style>
+    :root {
+      --bg: #0f1226;          /* پس‌زمینه اصلی */
+      --panel: #161a34;       /* کارت‌ها */
+      --panel-2: #1d2245;     /* کارت Hover */
+      --text: #e8ebff;        /* متن */
+      --muted: #a3a9d9;       /* متن کمرنگ */
+      --brand: #7c8cff;       /* رنگ برند */
+      --accent: #33e1c6;      /* رنگ تاکیدی */
+      --danger: #ff6b8a;      /* رنگ باخت/خطا */
+      --win: #66ff99;         /* رنگ برد */
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 80% -20%, #233 0%, transparent 60%),
+                  radial-gradient(900px 700px at 0% 120%, #112 0%, transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      display: grid; place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: 100%; max-width: 880px;
+      display: grid; gap: 22px;
+      grid-template-columns: 1fr;
+      animation: fadeIn .6s ease both;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)) , var(--panel);
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(6px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    header.card {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+
+    .title {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--brand), var(--accent));
+      display: grid; place-items: center; font-weight: 900; color: #0b1024;
+      text-shadow: 0 1px 0 rgba(255,255,255,.35);
+    }
+    h1 { font-size: 20px; margin: 0; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    .controls { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+
+    .control {
+      background: var(--panel-2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px; padding: 12px 14px;
+      display: grid; gap: 8px; min-height: 74px;
+    }
+    .control label { font-size: 12px; color: var(--muted); }
+    .control select, .control .segmented, .control button {
+      width: 100%;
+    }
+
+    select, button, .segmented {
+      background: #101432;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: var(--text);
+      padding: 10px 12px; font-size: 14px;
+      outline: none;
+      transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    }
+    select:hover, button:hover, .segmented:hover { background: #0d1130; }
+    button:active { transform: translateY(1px); }
+    button.primary { background: linear-gradient(135deg, var(--brand), var(--accent)); color: #0b1024; border-color: transparent; font-weight: 700; }
+
+    .segmented {
+      display: grid; grid-template-columns: repeat(2, 1fr); overflow: hidden; padding: 0;
+    }
+    .segmented button { background: transparent; border: 0; padding: 10px; color: var(--muted); }
+    .segmented button.active { background: rgba(255,255,255,0.08); color: var(--text); font-weight: 700; }
+
+    .grid-wrap { display: grid; gap: 18px; grid-template-columns: 1fr; align-items: start; }
+
+    .board.card {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px;
+    }
+
+    .cell {
+      aspect-ratio: 1/1;
+      display: grid; place-items: center; font-weight: 800; font-size: 56px; 
+      background: #0c1030; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+      cursor: pointer; user-select: none; position: relative; transition: transform .06s ease, background .2s ease, border-color .2s ease; 
+    }
+    .cell:hover { background: #0a0f2a; }
+    .cell:active { transform: scale(.98); }
+    .cell.disabled { pointer-events: none; opacity: .6; }
+    .cell.win { outline: 2px solid var(--win); box-shadow: 0 0 0 2px rgba(102,255,153,.2); }
+
+    .mark-X { background: linear-gradient(135deg, #f9d423, #ff4e50); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 6px 40px rgba(255, 108, 120, .25); }
+    .mark-O { background: linear-gradient(135deg, #7c8cff, #33e1c6); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 6px 40px rgba(124, 140, 255, .25); }
+
+    .status.card { display: grid; gap: 10px; align-content: center; }
+    .status-line { display: flex; justify-content: space-between; gap: 10px; }
+    .badge { background: rgba(255,255,255,.06); padding: 8px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); }
+
+    .footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+
+    .note { color: var(--muted); font-size: 12px; }
+
+    @media (min-width: 920px) {
+      .grid-wrap { grid-template-columns: 1fr 320px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" role="application" aria-label="بازی دوز">
+    <header class="card">
+      <div class="title">
+        <div class="logo">XO</div>
+        <div>
+          <h1>دوز — Tic‑Tac‑Toe</h1>
+          <div class="subtitle"> بازی دوز</div>
+        </div>
+      </div>
+      <button id="newGameTop" class="primary">شروع بازی جدید</button>
+    </header>
+
+    <section class="grid-wrap">
+      <section class="board card" id="board" aria-label="صفحه بازی" role="grid">
+        <!-- 9 خانه بازی -->
+      </section>
+
+      <aside class="card">
+        <div class="controls">
+          <div class="control">
+            <label>سطح سختی</label>
+            <select id="difficulty">
+              <option value="easy">آسان</option>
+              <option value="medium" selected>متوسط</option>
+              <option value="hard">سخت</option>
+            </select>
+          </div>
+          <div class="control">
+            <label>نقش شما</label>
+            <div class="segmented" id="role">
+              <button type="button" data-mark="X" class="active">X</button>
+              <button type="button" data-mark="O">O</button>
+            </div>
+          </div>
+          <div class="control">
+            <label>شروع‌کننده</label>
+            <div class="segmented" id="starter">
+              <button type="button" data-who="human" class="active">بازیکن</button>
+              <button type="button" data-who="bot">کامپیوتر</button>
+            </div>
+          </div>
+          <div class="control">
+            <label>بازی</label>
+            <button id="newGame" class="primary">بازی جدید</button>
+          </div>
+        </div>
+
+        <div class="status card" style="margin-top:12px;">
+          <div class="status-line"><span>وضعیت:</span> <span id="status" class="badge">در حال آماده‌سازی…</span></div>
+          <div class="status-line"><span>امتیاز شما:</span> <span id="scoreHuman" class="badge">0</span></div>
+          <div class="status-line"><span>امتیاز کامپیوتر:</span> <span id="scoreBot" class="badge">0</span></div>
+          <div class="status-line"><span>مساوی:</span> <span id="scoreDraw" class="badge">0</span></div>
+        </div>
+
+        <p class="note">راهنما: برای بازی روی خانه‌ها کلیک کنید. سختی «غیرقابل‌برد» از الگوریتم Minimax استفاده می‌کند. با «بازی جدید» تنظیمات اعمال و برد پاک می‌شود.</p>
+      </aside>
+    </section>
+
+    <footer class="card footer">
+      <div class="note">ساخته شده توسط YG</div>
+      <button id="sendToTelegram" style="display:none">ارسال نتیجه به ربات</button>
+    </footer>
+  </main>
+
+  <script>
+    // --- State & Utils -------------------------------------------------------
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const scoreEls = {
+      human: document.getElementById('scoreHuman'),
+      bot: document.getElementById('scoreBot'),
+      draw: document.getElementById('scoreDraw')
+    };
+    const difficultyEl = document.getElementById('difficulty');
+    const roleEl = document.getElementById('role');
+    const starterEl = document.getElementById('starter');
+    const newGameButtons = [document.getElementById('newGame'), document.getElementById('newGameTop')];
+    const sendBtn = document.getElementById('sendToTelegram');
+
+    const WIN_LINES = [
+      [0,1,2], [3,4,5], [6,7,8], // rows
+      [0,3,6], [1,4,7], [2,5,8], // cols
+      [0,4,8], [2,4,6]           // diagonals
+    ];
+
+    const storage = {
+      get(k, d){ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+      set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+    };
+
+    const state = {
+      board: Array(9).fill(null),
+      humanMark: storage.get('ttt:humanMark', 'X'),
+      botMark: null,
+      turn: 'human',
+      starting: storage.get('ttt:starting', 'human'),
+      difficulty: storage.get('ttt:difficulty', 'medium'),
+      scores: storage.get('ttt:scores', { human: 0, bot: 0, draw: 0 }),
+      finished: false
+    };
+    state.botMark = state.humanMark === 'X' ? 'O' : 'X';
+
+    function setStatus(text){ statusEl.textContent = text; }
+
+    function renderBoard(){
+      boardEl.innerHTML = '';
+      for (let i=0; i<9; i++) {
+        const cell = document.createElement('button');
+        cell.className = 'cell';
+        cell.setAttribute('role','gridcell');
+        cell.setAttribute('aria-label', `خانه ${i+1}`);
+        cell.dataset.index = i;
+        cell.addEventListener('click', onHumanMove);
+        boardEl.appendChild(cell);
+      }
+      updateUI();
+    }
+
+    function updateUI(){
+      // Fill marks
+      const cells = boardEl.querySelectorAll('.cell');
+      cells.forEach((cell, i) => {
+        const val = state.board[i];
+        cell.textContent = val ? val : '';
+        cell.classList.toggle('mark-X', val === 'X');
+        cell.classList.toggle('mark-O', val === 'O');
+        cell.classList.toggle('disabled', !!val || state.finished || state.turn === 'bot');
+      });
+
+      // Status
+      if (!state.finished) {
+        setStatus(state.turn === 'human' ? 'نوبت شماست' : 'نوبت کامپیوتر…');
+      }
+
+      // Scores
+      scoreEls.human.textContent = state.scores.human;
+      scoreEls.bot.textContent = state.scores.bot;
+      scoreEls.draw.textContent = state.scores.draw;
+    }
+
+    function emptyIndices(board){ return board.map((v, i) => v ? null : i).filter(v => v !== null); }
+
+    function checkWinner(board){
+      for (const [a,b,c] of WIN_LINES) {
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          return { winner: board[a], line: [a,b,c] };
+        }
+      }
+      if (emptyIndices(board).length === 0) return { winner: 'draw', line: null };
+      return null;
+    }
+
+    function endGame(result){
+      state.finished = true;
+      const cells = boardEl.querySelectorAll('.cell');
+      if (result.winner === 'draw') {
+        setStatus('مساوی!');
+        state.scores.draw++;
+      } else if (result.winner === state.humanMark) {
+        setStatus('بردی! 🎉');
+        state.scores.human++;
+        result.line.forEach(i => cells[i].classList.add('win'));
+      } else {
+        setStatus('باختی! 🤖');
+        state.scores.bot++;
+        result.line.forEach(i => cells[i].classList.add('win'));
+      }
+      storage.set('ttt:scores', state.scores);
+      updateUI();
+      // اگر داخل تلگرام باشیم، دکمه ارسال نتیجه را نشان بده
+      if (window.Telegram && Telegram.WebApp) sendBtn.style.display = 'inline-flex';
+    }
+
+    // --- Human Move ----------------------------------------------------------
+    function onHumanMove(e){
+      const idx = Number(e.currentTarget.dataset.index);
+      if (state.finished || state.turn !== 'human' || state.board[idx]) return;
+      state.board[idx] = state.humanMark;
+      const result = checkWinner(state.board);
+      if (result) { endGame(result); return; }
+      state.turn = 'bot';
+      updateUI();
+      setTimeout(botMove, 350);
+    }
+
+    // --- Bot Move (difficulty based) ----------------------------------------
+    function botMove(){
+      if (state.finished) return;
+      const idx = chooseBotMove();
+      if (idx == null) return;
+      state.board[idx] = state.botMark;
+      const result = checkWinner(state.board);
+      if (result) { endGame(result); return; }
+      state.turn = 'human';
+      updateUI();
+    }
+
+    function chooseBotMove(){
+      const empties = emptyIndices(state.board);
+      if (empties.length === 0) return null;
+      const d = state.difficulty;
+      if (d === 'easy') {
+        // 70% تصادفی، 30% حرکت خوب (اگر برد فوری یا بلاک فوری وجود دارد)
+        const t = immediateTactic();
+        if (t != null && Math.random() < 0.3) return t;
+        return empties[Math.floor(Math.random() * empties.length)];
+      }
+      if (d === 'medium') {
+        // اول برد فوری یا بلاک فوری، بعد یک حرکت مرکزی/گوشه‌ای
+        const t = immediateTactic();
+        if (t != null) return t;
+        if (state.board[4] == null) return 4; // مرکز
+        const corners = [0,2,6,8].filter(i => state.board[i] == null);
+        if (corners.length) return corners[Math.floor(Math.random()*corners.length)];
+        return empties[Math.floor(Math.random() * empties.length)];
+      }
+      // hard: Minimax (unbeatable)
+      return minimaxBestMove(state.board, state.botMark).index;
+    }
+
+    function immediateTactic(){
+      // اگر برد فوری برای ربات یا بلاک فوری برای انسان وجود داشته باشد
+      for (const [a,b,c] of WIN_LINES) {
+        const line = [a,b,c];
+        for (const mark of [state.botMark, state.humanMark]) {
+          const vals = line.map(i => state.board[i]);
+          const countMark = vals.filter(v => v === mark).length;
+          const countEmpty = vals.filter(v => v == null).length;
+          if (countMark === 2 && countEmpty === 1) {
+            return line[vals.indexOf(null)];
+          }
+        }
+      }
+      return null;
+    }
+
+    // --- Minimax -------------------------------------------------------------
+    function minimaxBestMove(board, player){
+      const opponent = (m) => m === 'X' ? 'O' : 'X';
+      const winInfo = checkWinner(board);
+      if (winInfo) {
+        if (winInfo.winner === 'draw') return { score: 0 };
+        return { score: winInfo.winner === state.botMark ? 10 : -10 };
+      }
+      const moves = [];
+      for (const i of emptyIndices(board)) {
+        const newBoard = board.slice();
+        newBoard[i] = player;
+        const result = minimaxBestMove(newBoard, opponent(player));
+        moves.push({ index: i, score: result.score });
+      }
+      // اگر نوبت ربات است: بیشینه‌سازی، اگر نوبت انسان: کمینه‌سازی
+      if (player === state.botMark) {
+        return moves.reduce((best, m) => (m.score > best.score ? m : best), { score: -Infinity });
+      } else {
+        return moves.reduce((best, m) => (m.score < best.score ? m : best), { score: Infinity });
+      }
+    }
+
+    // --- New Game & Controls -------------------------------------------------
+    function applySegmented(segEl, valueAttr, storageKey){
+      segEl.querySelectorAll('button').forEach(btn => {
+        const active = btn.dataset[valueAttr] === storage.get(storageKey, btn.classList.contains('active') ? btn.dataset[valueAttr] : null);
+        btn.classList.toggle('active', active);
+      });
+    }
+
+    function startNewGame(resetBoard = true){
+      state.humanMark = roleEl.querySelector('.active')?.dataset.mark || state.humanMark;
+      state.botMark = state.humanMark === 'X' ? 'O' : 'X';
+      state.starting = starterEl.querySelector('.active')?.dataset.who || state.starting;
+      state.difficulty = difficultyEl.value;
+      storage.set('ttt:humanMark', state.humanMark);
+      storage.set('ttt:starting', state.starting);
+      storage.set('ttt:difficulty', state.difficulty);
+
+      if (resetBoard) state.board = Array(9).fill(null);
+      state.finished = false;
+      state.turn = state.starting;
+      renderBoard();
+      if (state.turn === 'bot') setTimeout(botMove, 450);
+      sendBtn.style.display = 'none';
+    }
+
+    // Events: segmented controls
+    roleEl.addEventListener('click', e => {
+      if (e.target.tagName !== 'BUTTON') return;
+      roleEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      startNewGame(true);
+    });
+    starterEl.addEventListener('click', e => {
+      if (e.target.tagName !== 'BUTTON') return;
+      starterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      startNewGame(true);
+    });
+
+    difficultyEl.addEventListener('change', () => startNewGame(false));
+    newGameButtons.forEach(btn => btn.addEventListener('click', () => startNewGame(true)));
+
+    // --- Telegram WebApp (optional step 3) ----------------------------------
+    // اگر داخل WebApp تلگرام باز شده باشد، دکمه ارسال نتیجه فعال می‌شود
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.ready();
+      sendBtn.style.display = 'inline-flex';
+      sendBtn.classList.add('primary');
+      sendBtn.addEventListener('click', () => {
+        const payload = {
+          result: statusEl.textContent,
+          scores: state.scores,
+          difficulty: state.difficulty,
+          time: new Date().toISOString()
+        };
+        Telegram.WebApp.sendData(JSON.stringify(payload));
+      });
+    }
+
+    // --- Init ---------------------------------------------------------------
+    // Restore UI from storage
+    difficultyEl.value = state.difficulty;
+    roleEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mark === state.humanMark));
+    starterEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.who === state.starting));
+
+    renderBoard();
+    startNewGame(true);
+  </script>
+</body>
+</html>
